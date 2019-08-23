@@ -1,5 +1,5 @@
 # Analysis_scintillation
-This Python code script is wrote by Ziwei to analyze scintillation parameters.
+This Python code script is wrote by Ziwei to analyze scintillation parameters. \n
 The first step run:
     python ../analysis_scintillation/combine_data_into_xls.py -m J0837+0610-all.txt -d 0.72 -f 2.0 *4.txt
 The second step run:
