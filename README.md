@@ -19,6 +19,6 @@ Then, you can have some plots:
     
     b. python plot_scitillnation_para.py -t 'time' ../J0837+0610/Excel_Workbook.xls
     
-    c. python plot_scitillnation_para.py -t 'time' ../J0837+0610/Excel_Workbook.xls
+    c. python plot_scitillnation_para.py -t 'spectratime' ../J0837+0610/Excel_Workbook.xls
     
     d. python plot_scitillnation_para.py -t 'spectrafrequency' ../J0837+0610/Excel_Workbook.xls
