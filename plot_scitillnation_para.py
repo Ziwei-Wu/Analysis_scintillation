@@ -1,108 +1,119 @@
-#!/usr/bin/env python
-# Version: 0.0
-# Author: Ziwei Wu
-# Purpose : to calcute spectra index 
-
-import xlwt
+import xlrd
+import numpy as np 
+from matplotlib import pyplot as plt 
 import argparse
 import warnings
-import numpy as np
-from xlutils.copy import copy
-import xlrd
-import math
-from scipy.optimize import curve_fit
-import matplotlib.pyplot as plt
-
-def read():    
-    print ("  \nNote: \n \n  The scintillation parameters are expected to evolve with frequency according to a power law, Under the assumption of a Kolmogorov spectrum the spectral indices are t = 1.2 and v = 4.4 \n \n")
 
 def ignorewarning():
     warnings.simplefilter('ignore', RuntimeWarning)
     warnings.simplefilter('ignore', UserWarning)
     warnings.simplefilter('ignore', FutureWarning)
 
-def write_head(filename, number):
-    # open xls to rewrite data   
-    old_excel = xlrd.open_workbook(filename, formatting_info=True)
-    new_excel = copy(old_excel)
-    ws = new_excel.get_sheet(0)
-    ws.write(0, number,  "freq-bandwidth-spectra-index")
-    ws.write(0, number+1,  "error")
-    ws.write(0, number+2,  "time-scale-spectra-index")
-    ws.write(0, number+3,  "time-scale-spectra-index")
+def get_fit_data(filename,i,factor):
+    data = xlrd.open_workbook(filename)
+    table = data.sheet_by_name(u'My Worksheet')
 
-    new_excel.save(filename)
-
-def func_powerlaw(x, m, k):
-    return k*x**m
-
-def fitdata(xdata, ydata, ydataerror):
-    popt, pcov = curve_fit(func_powerlaw, xdata, ydata, sigma=ydataerror, maxfev=10000)
-    perr = np.sqrt(np.diag(pcov))
-    return popt[0], perr[0]
-
-
-def getdata(filename, firstnumber, jump, location):
-    # open xls to rewrite data   
-    old_excel = xlrd.open_workbook(filename, formatting_info=True)
-    new_excel = copy(old_excel)
-    ws = new_excel.get_sheet(0)
-
-    #open xls for reading data to get observation number
-    data = xlrd.open_workbook(filename) 
-    table = data.sheets()[0] 
-    nrows = table.nrows 
-
-    #get fit data
-    i=1
-
-    column = firstnumber
-    while i<nrows:
-        data_list = []
-        data_err_list = []
-        obsfreq = 124
-        obsfreq_list = []
-        while column < 54:
-            if str(table.cell(i,column).value) == "" or str(table.cell(i,column).value) == "nan":
-                print "Jumping cell because of null value at %s, %s" % (i, column)
-                column += jump
-                obsfreq += 10
-            else:
-                data = table.cell(i,column).value
-                data_err = table.cell(i,column+1).value
-                data_list.append(data)
-                data_err_list.append(data_err)
-                obsfreq_list.append(obsfreq)
-                column += jump
-                obsfreq += 10
-
-        #fit data only if len(data) >= 2
-        if len(data_list) >= 3:
-            para, paraerr = fitdata(obsfreq_list, data_list, data_err_list)
-            ws.write(i, location, para)
-            ws.write(i, location+1, paraerr)
+    data_list = []
+    data_err_list = []
+    mjd = []
+    ncow = 1
+    
+    a=int(table.nrows) - 1
+    
+    while ncow < a: 
+        if table.cell(ncow,i).value == '' or str(table.cell(ncow,i).value) == "nan":
+            ncow = ncow+1
         else:
-            ws.write(i, location, "nan")
-            ws.write(i, location+1, "nan")
+            mjd.append(table.cell(ncow,0).value-57100)
+            data_list.append(table.cell(ncow,i).value*factor)
+            data_err_list.append(table.cell(ncow,i+1).value*factor)
+            #print i, ncow,table.cell(ncow,i).value
+            ncow = ncow+1
 
 
-        i += 1
-        column = firstnumber
+    return data_list, data_err_list, mjd
 
-    new_excel.save(filename)
 
+def plotdata(i, filename, factor):
+    #loading data from excel for time-scale
+    j = 0
+    freq = 124
+    marker_list = ['*', '+', 'd', 'v', '4', '1']
+    color_list = ['red', 'blue', 'orange', 'green', 'black', 'yellow']
+    line_style_list = ['dotted', 'dashdot', 'solid', 'dotted', 'dashed', 'dashdot']
+    while i < 54:
+        freqname = str(freq) + 'Hz'
+        time_list, time_err_list, mjd = get_fit_data(filename, i, factor)
+        plt.errorbar(mjd,time_list, yerr=time_err_list, marker=marker_list[j],color=color_list[j], label=freqname, linestyle=line_style_list[j])
+        freq += 10
+        i += 9
+        j += 1
+
+def plotspectra(filename, number):
+    data_list, data_err_list, mjd = get_fit_data(filename, number, 1)
 
 def main():
     parser = argparse.ArgumentParser(description='Select the scintillation result files.')
     parser.add_argument('files', help='The chosen files')
+    parser.add_argument('-t','--type', help='which paras do you want to plot: time, bandwidth, spectratime, spectrafrequency and scalingfactor')
     args = parser.parse_args()
-    filename = args.files
+    filename=args.files
+    plottype=args.type
 
-    write_head(filename, 73)
-    getdata(filename, 1, 9, 73)
-    getdata(filename, 4, 9, 75)
+    ignorewarning()
+
+    fig, ax = plt.subplots(dpi=100)
+    if plottype == 'time':
+        column = 4
+        times = 1
+        ytitle = "Time-scale (mins)"
+        plotdata(column, filename, times)
+        plt.ylabel(ytitle,fontsize=15)
+    elif plottype == 'bandwidth':
+        column = 1
+        times = 1000
+        ytitle = "Frequency bandwith (Khz)"
+        plotdata(column, filename, times)
+        plt.ylabel(ytitle,fontsize=15)
+    elif plottype == 'spectratime':
+        ytitle = 'scale index at time-scale'
+        data_list, data_err_list, mjd = get_fit_data(filename, 73, 1)
+        plt.errorbar(mjd,data_list,yerr=data_err_list, fmt='o')
+        plt.plot([0,1400], [4.4, 4.4], label='Kolmogorov spectrum with 4.4', linestyle='--')
+        plt.plot([np.min(mjd),np.max(mjd)],[np.mean(data_list),np.mean(data_list)])
+        ax.fill_between(mjd, np.mean(data_list)+np.mean(data_err_list), np.mean(data_list)-np.mean(data_err_list), alpha=.25, label='1-sigma interval')
+        plt.ylabel(ytitle,fontsize=15)
+    elif plottype == 'spectrafrequency':
+        ytitle = 'scale index at frequency-bandwidth'
+        data_list, data_err_list, mjd = get_fit_data(filename, 75, 1)
+        plt.errorbar(mjd,data_list,yerr=data_err_list, fmt='o')
+        plt.plot([np.min(mjd),np.max(mjd)],[np.mean(data_list),np.mean(data_list)])
+        plt.plot([0,1400], [1.2, 1.2], label='Kolmogorov spectrum with 1.2', linestyle='--')
+        ax.fill_between(mjd, np.mean(data_list)+np.mean(data_err_list), np.mean(data_list)-np.mean(data_err_list), alpha=.25, label='1-sigma interval of mean value')
+        plt.ylabel(ytitle,fontsize=15)
+    elif plottype == 'scalingfactor':      
+        i = 0
+        freq = 124
+        number = 65
+        while i < 6:
+            data_list, data_err_list, mjd = get_fit_data(filename, number, 1)
+            print len(mjd)
+            plt.plot(mjd,data_list, linestyle='--', label = str(freq)+'MHz')
+            freq += 10
+            number += 1
+            i += 1
+ 
+    else:
+       print ('Please input the right string')
+
+
+    plt.legend(loc='up right')
+    #plt.xlim(0,600)
+    plt.title('J1921+2153')
+    plt.xlabel("MJD after 57100",fontsize=20)
+    plt.subplots_adjust(bottom=0.14, right=0.97, top=0.90, left=0.11)
+    #plt.show()
+    plt.savefig('J1921+2153-time-scale-index.png', dpi=200)
 
 if  __name__=="__main__":
-    read()
-    ignorewarning()
     main()
