@@ -12,6 +12,9 @@ The second step run:
 The third step run:
 
     python ../analysis_scintillation/cal_spectra_index.py Excel_Workbook.xls
+The forth step is
+    
+    python ../analysis_scintillation/cal_curvature.py Excel_Workbook.xls
     
 Then, you can have some plots:
 
@@ -22,3 +25,5 @@ Then, you can have some plots:
     c. python plot_scitillnation_para.py -t 'spectratime' ../J0837+0610/Excel_Workbook.xls
     
     d. python plot_scitillnation_para.py -t 'spectrafrequency' ../J0837+0610/Excel_Workbook.xls
+    
+    e. python plot_scitillnation_para.py -t 'Curvature' ../J0837+0610/Excel_Workbook.xls
