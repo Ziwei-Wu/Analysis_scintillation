@@ -44,7 +44,7 @@ def plotdata(i, filename, factor):
     while i < 54:
         freqname = str(freq) + 'Hz'
         time_list, time_err_list, mjd = get_fit_data(filename, i, factor)
-        plt.errorbar(mjd,time_list, yerr=time_err_list, marker=marker_list[j],color=color_list[j], label=freqname, linestyle=line_style_list[j])
+        plt.errorbar(mjd,time_list, yerr=time_err_list,color=color_list[j], label=freqname, linestyle=line_style_list[j], fmt='none', marker=marker_list[j], capsize=2)
         freq += 10
         i += 9
         j += 1
@@ -55,7 +55,7 @@ def plotspectra(filename, number):
 def main():
     parser = argparse.ArgumentParser(description='Select the scintillation result files.')
     parser.add_argument('files', help='The chosen files')
-    parser.add_argument('-t','--type', help='which paras do you want to plot: time, bandwidth, spectratime, spectrafrequency and scalingfactor')
+    parser.add_argument('-t','--type', help='which paras do you want to plot: time, bandwidth, curvature, spectratime, spectrafrequency and scalingfactor')
     args = parser.parse_args()
     filename=args.files
     plottype=args.type
@@ -75,6 +75,17 @@ def main():
         ytitle = "Frequency bandwith (Khz)"
         plotdata(column, filename, times)
         plt.ylabel(ytitle,fontsize=15)
+    elif plottype== "curvature":
+        column = 8
+        times = 1
+        ytitle = "Curvature"
+        plotdata(column, filename, times)
+        curvature, cur_err, mjd = get_fit_data(filename, 80, 1)
+        #print curvature, cur_err, mjd
+        #plt.errorbar(mjd, curvature, yerr=cur_err)
+        plt.ylabel(ytitle,fontsize=15)
+        plt.ylim(0,1.5)
+        #plt.xlim(-50, 150)
     elif plottype == 'spectratime':
         ytitle = 'scale index at time-scale'
         data_list, data_err_list, mjd = get_fit_data(filename, 73, 1)
@@ -109,11 +120,11 @@ def main():
 
     plt.legend(loc='up right')
     #plt.xlim(0,600)
-    plt.title('J1921+2153')
+    plt.title('J1136+1551')
     plt.xlabel("MJD after 57100",fontsize=20)
     plt.subplots_adjust(bottom=0.14, right=0.97, top=0.90, left=0.11)
-    #plt.show()
-    plt.savefig('J1921+2153-time-scale-index.png', dpi=200)
+    plt.show()
+    #plt.savefig('J1136+1551-curvature.png', dpi=200)
 
 if  __name__=="__main__":
     main()
